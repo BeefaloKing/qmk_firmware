@@ -1,4 +1,11 @@
+#ifdef QMK_KEYBOARD_H // Added so clangd understands how to provide autocompletions
 #include QMK_KEYBOARD_H
+#else
+#include "../../config.h"
+#include "../../v2/config.h"
+#include "config.h"
+#include "../../dz65rgb.h"
+#endif
 
 enum {
     _DF, // Default Layer
