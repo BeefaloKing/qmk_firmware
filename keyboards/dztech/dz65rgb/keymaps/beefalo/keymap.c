@@ -1,6 +1,7 @@
 #ifdef QMK_KEYBOARD_H // Added so clangd understands how to provide autocompletions
 #include QMK_KEYBOARD_H
 #else
+#define RGB_MATRIX_ENABLE
 #include "../../config.h"
 #include "../../v2/config.h"
 #include "config.h"
@@ -12,6 +13,11 @@ enum {
     _FN, // Function Layer
     _SP, // Special Layer
     _DG, // Danger Layer
+};
+
+enum customKeyCode {
+    CC_FNLK = SAFE_RANGE, // Function Lock
+    CC_WNLK, // Windows Lock
 };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -32,9 +38,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_SP] = LAYOUT_65_ansi(
         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_VOLU,
         XXXXXXX, RGB_TOG, RGB_MOD, RGB_SPI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_VOLD,
-        XXXXXXX, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,          XXXXXXX, XXXXXXX,
+        CC_FNLK, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,          XXXXXXX, XXXXXXX,
         _______,          XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, _______, XXXXXXX, XXXXXXX,
-        XXXXXXX, XXXXXXX, XXXXXXX,                            MO(_DG),                   XXXXXXX, _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
+        XXXXXXX, CC_WNLK, XXXXXXX,                            MO(_DG),                   XXXXXXX, _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
     ),
     [_DG] = LAYOUT_65_ansi(
         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
@@ -44,10 +50,66 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         XXXXXXX, XXXXXXX, XXXXXXX,                            _______,                   XXXXXXX, _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
     ),
 };
-// [] = LAYOUT_65_ansi(
-//     _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-//     _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-//     _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          _______, _______,
-//     _______,          _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-//     _______, _______, _______,                            _______,                   _______, _______, _______, _______, _______, _______
-// ),
+
+bool isFunctionLocked = false;
+bool isWindowsLocked = false;
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        switch (keycode) {
+            case CC_FNLK:
+                isFunctionLocked = !isFunctionLocked;
+                return false;
+            case CC_WNLK:
+                isWindowsLocked = !isWindowsLocked;
+                return false;
+            case MO(_FN):
+                if (isFunctionLocked) {
+                    return false;
+                }
+                break;
+            case KC_LGUI:
+                if (isWindowsLocked) {
+                    return false;
+                }
+                break;
+        }
+    }
+
+    return true;
+}
+
+#ifdef RGB_MATRIX_ENABLE
+#define INDICATOR_HUE 0
+#define INDICATOR_FNLK_INDEX 30
+#define INDICATOR_WNLK_INDEX 59
+#define INDICATOR_NLCK_INDEX 14
+#define INDICATOR_CLCK_INDEX 29
+#define INDICATOR_SLCK_INDEX 43
+
+void rgb_matrix_indicators_user(void) {
+    HSV hsv = rgb_matrix_get_hsv();
+    hsv.h = INDICATOR_HUE;
+    RGB rgb = hsv_to_rgb(hsv);
+    #define RGB_VALUES rgb.r, rgb.g, rgb.b
+
+    if (host_keyboard_led_state().num_lock) {
+        rgb_matrix_set_color(INDICATOR_NLCK_INDEX, RGB_VALUES);
+    }
+    if (host_keyboard_led_state().caps_lock) {
+        rgb_matrix_set_color(INDICATOR_CLCK_INDEX, RGB_VALUES);
+    }
+    if (host_keyboard_led_state().scroll_lock) {
+        rgb_matrix_set_color(INDICATOR_SLCK_INDEX, RGB_VALUES);
+    }
+
+    if (isFunctionLocked) {
+        rgb_matrix_set_color(INDICATOR_FNLK_INDEX, RGB_VALUES);
+    }
+    if (isWindowsLocked) {
+        rgb_matrix_set_color(INDICATOR_WNLK_INDEX, RGB_VALUES);
+    }
+
+    #undef RGB_VALUES
+}
+#endif // RGB_MATRIX_ENABLE
