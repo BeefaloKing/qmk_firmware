@@ -1,5 +1,9 @@
 #pragma once
 
+/* General Configuration
+ */
+#define RGB_DISABLE_TIMEOUT 720000 // 12 minutes
+
 /* RGB Matrix Effects
  * Comment line to enable effect
  */
