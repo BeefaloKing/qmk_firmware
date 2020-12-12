@@ -88,17 +88,22 @@ void sendAltCode(uint16_t keycode) {
         keySequence[i] = (KC_KP_1 - 1) + keySequence[i];
     }
 
-    bool numLockOn = host_keyboard_leds() & (1<<USB_LED_NUM_LOCK);
-    bool altHeld = (keyboard_report->mods & (KC_LALT | KC_RALT)) == 0;
+    bool numLockOn = host_keyboard_led_state().num_lock;
+    uint8_t altMask = get_mods() & (MOD_BIT(KC_LALT) | MOD_BIT(KC_RALT));
+    uint8_t shiftMask = get_mods() & (MOD_BIT(KC_LSHIFT) | MOD_BIT(KC_RSHIFT));
 
+    if (shiftMask) { // Release shifts if they are held
+        del_mods(shiftMask);
+        send_keyboard_report();
+    }
     if (!numLockOn) { // Turn num lock off if it was on
         register_code(KC_NLCK);
         send_keyboard_report();
         unregister_code(KC_NLCK);
         send_keyboard_report();
     }
-    if (!altHeld) { // Hold alt if it was not held
-        register_code(KC_LALT);
+    if (!altMask) { // Hold alt if it was not held
+        add_mods(MOD_BIT(KC_LALT));
         send_keyboard_report();
     }
 
@@ -112,14 +117,24 @@ void sendAltCode(uint16_t keycode) {
         send_keyboard_report(); // Include both changes in a single report
     }
 
-    if (!altHeld) { // Release alt if it was not held
-        unregister_code(KC_LALT);
+    if (!altMask) { // Release alt if it was not held
+        del_mods(MOD_BIT(KC_LALT));
+        send_keyboard_report();
+    }
+    else { // Release and repress alt if it was already held
+        del_mods(altMask);
+        send_keyboard_report();
+        add_mods(altMask);
         send_keyboard_report();
     }
     if (!numLockOn) { // Turn num lock back on if it was on
         register_code(KC_NLCK);
         send_keyboard_report();
         unregister_code(KC_NLCK);
+        send_keyboard_report();
+    }
+    if (shiftMask) { // Press shifts again if they were held
+        add_mods(shiftMask);
         send_keyboard_report();
     }
 }
