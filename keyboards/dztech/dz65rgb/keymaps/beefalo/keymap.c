@@ -18,6 +18,7 @@ enum {
 enum customKeyCode {
     CC_FNLK = SAFE_RANGE, // Function Lock
     CC_WNLK, // Windows Lock
+    CC_BTN1, // Press and release KC_BTN1 instantly
     CC_ALTCODE, // Alt Code Macro
     CC_ALTCODE_MAX = CC_ALTCODE + 256, // Maximum entries in altCodeMap
 };
@@ -53,8 +54,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
     [_SP] = LAYOUT_65_ansi(
         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_VOLU,
-        XXXXXXX, RGB_TOG, RGB_MOD, RGB_SPI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_BTN1, KC_BTN2, KC_VOLD,
-        CC_FNLK, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, AC_EDIA, KC_BTN1,          KC_BTN2, XXXXXXX,
+        XXXXXXX, RGB_TOG, RGB_MOD, RGB_SPI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, CC_BTN1, KC_BTN2, KC_VOLD,
+        CC_FNLK, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, AC_EDIA, CC_BTN1,          KC_BTN2, XXXXXXX,
         _______,          XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, _______, XXXXXXX, XXXXXXX,
         XXXXXXX, CC_WNLK, XXXXXXX,                            MO(_DG),                   XXXXXXX, _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
     ),
@@ -139,6 +140,14 @@ void sendAltCode(uint16_t keycode) {
     }
 }
 
+void tapKey(uint16_t keycode)
+{
+    register_code(keycode);
+    send_keyboard_report();
+    unregister_code(keycode);
+    send_keyboard_report();
+}
+
 bool isFunctionLocked = false;
 bool isWindowsLocked = false;
 
@@ -160,6 +169,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (isWindowsLocked) {
                 return false;
             }
+            break;
+        case CC_BTN1:
+            tapKey(KC_BTN1);
             break;
         default:
             if (keycode >= CC_ALTCODE && keycode < CC_ALTCODE_MAX)
