@@ -5,3 +5,4 @@
 -Itmk_core
 -Itmk_core/common
 -Itmk_core/protocol
+-Ilib/printf
