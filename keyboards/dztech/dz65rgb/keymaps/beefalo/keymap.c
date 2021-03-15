@@ -220,3 +220,12 @@ void rgb_matrix_indicators_user(void) {
     #undef RGB_VALUES
 }
 #endif // RGB_MATRIX_ENABLE
+
+void keyboard_post_init_user(void) {
+    /* Debug
+     */
+    // debug_enable=true;
+    // debug_matrix=true;
+    // debug_keyboard=true;
+    // debug_mouse=true;
+}
