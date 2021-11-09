@@ -4,8 +4,8 @@
 #define RGB_MATRIX_ENABLE
 #include "../../config.h"
 #include "../../v2/config.h"
+#include "../../v2/v2.h"
 #include "config.h"
-#include "../../dz65rgb.h"
 #endif
 
 enum {
