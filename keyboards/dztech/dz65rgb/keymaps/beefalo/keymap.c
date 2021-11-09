@@ -19,23 +19,7 @@ enum customKeyCode {
     CC_FNLK = SAFE_RANGE, // Function Lock
     CC_WNLK, // Windows Lock
     CC_BTN1, // Press and release KC_BTN1 instantly
-    CC_ALTCODE, // Alt Code Macro
-    CC_ALTCODE_MAX = CC_ALTCODE + 256, // Maximum entries in altCodeMap
 };
-
-enum altCodeNames { // Alt Code Map Index
-    AMI_SMALL_E_DIA,
-    AMI_BIG_E_DIA,
-    AMI_MAP_SIZE,
-};
-
-const uint32_t altCodeMap[AMI_MAP_SIZE] = {
-    [AMI_SMALL_E_DIA] = 0x00EB, // ë
-    [AMI_BIG_E_DIA] = 0x00CB, // Ë
-};
-
-#define AC(INDEX) (CC_ALTCODE + INDEX)
-#define AC_EDIA AC(AMI_SMALL_E_DIA)
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_DF] = LAYOUT_65_ansi(
@@ -55,7 +39,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_SP] = LAYOUT_65_ansi(
         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_VOLU,
         XXXXXXX, RGB_TOG, RGB_MOD, RGB_SPI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, CC_BTN1, KC_BTN2, KC_VOLD,
-        CC_FNLK, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, AC_EDIA, CC_BTN1,          KC_BTN2, XXXXXXX,
+        CC_FNLK, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, CC_BTN1,          KC_BTN2, XXXXXXX,
         _______,          XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, _______, XXXXXXX, XXXXXXX,
         XXXXXXX, CC_WNLK, XXXXXXX,                            MO(_DG),                   XXXXXXX, _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
     ),
@@ -67,78 +51,6 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         XXXXXXX, XXXXXXX, XXXXXXX,                            _______,                   XXXXXXX, _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
     ),
 };
-
-void sendAltCode(uint16_t keycode) {
-    uint16_t mapIndex = keycode - CC_ALTCODE;
-    if (mapIndex >= AMI_MAP_SIZE) { // Return if mapIndex is not a valid altCodeMap index
-        return;
-    }
-    uint32_t altCode = altCodeMap[keycode - CC_ALTCODE];
-
-    uint16_t keySequence[5];
-    size_t sequenceLength = sizeof(keySequence)/sizeof(keySequence[0]);
-
-    for (size_t i = sequenceLength; i-- > 0;) {
-        keySequence[i] = altCode % 10;
-        altCode /= 10;
-
-        if (keySequence[i] == 0) { // Replace 0 with 10 to make sequence value align with keycodes
-            keySequence[i] = 10;
-        }
-
-        keySequence[i] = (KC_KP_1 - 1) + keySequence[i];
-    }
-
-    bool numLockOn = host_keyboard_led_state().num_lock;
-    uint8_t altMask = get_mods() & (MOD_BIT(KC_LALT) | MOD_BIT(KC_RALT));
-    uint8_t shiftMask = get_mods() & (MOD_BIT(KC_LSHIFT) | MOD_BIT(KC_RSHIFT));
-
-    if (shiftMask) { // Release shifts if they are held
-        del_mods(shiftMask);
-        send_keyboard_report();
-    }
-    if (!numLockOn) { // Turn num lock off if it was on
-        register_code(KC_NLCK);
-        send_keyboard_report();
-        unregister_code(KC_NLCK);
-        send_keyboard_report();
-    }
-    if (!altMask) { // Hold alt if it was not held
-        add_mods(MOD_BIT(KC_LALT));
-        send_keyboard_report();
-    }
-
-    for (size_t i = 0; i < sequenceLength + 1; i++) {
-        if (i > 0) { // Remove previous key if it exists
-            del_key(keySequence[i - 1]);
-        }
-        if (i < sequenceLength) { // Add current key if it exists
-            add_key(keySequence[i]);
-        }
-        send_keyboard_report(); // Include both changes in a single report
-    }
-
-    if (!altMask) { // Release alt if it was not held
-        del_mods(MOD_BIT(KC_LALT));
-        send_keyboard_report();
-    }
-    else { // Release and repress alt if it was already held
-        del_mods(altMask);
-        send_keyboard_report();
-        add_mods(altMask);
-        send_keyboard_report();
-    }
-    if (!numLockOn) { // Turn num lock back on if it was on
-        register_code(KC_NLCK);
-        send_keyboard_report();
-        unregister_code(KC_NLCK);
-        send_keyboard_report();
-    }
-    if (shiftMask) { // Press shifts again if they were held
-        add_mods(shiftMask);
-        send_keyboard_report();
-    }
-}
 
 void tapKey(uint16_t keycode)
 {
@@ -174,11 +86,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             tapKey(KC_BTN1);
             break;
         default:
-            if (keycode >= CC_ALTCODE && keycode < CC_ALTCODE_MAX)
-            {
-                sendAltCode(keycode);
-                return false;
-            }
             break;
         }
     }
