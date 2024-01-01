@@ -32,7 +32,7 @@ void set_key_rgb(keypos_t key, RGB rgb) {
     rgb_matrix_set_color(key_to_led(key), rgb.r, rgb.g, rgb.b);
 }
 
-void tap_key(uint16_t keycode) {
+static void tap_key(uint16_t keycode) {
     register_code(keycode);
     send_keyboard_report();
     unregister_code16(keycode);
@@ -45,12 +45,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     keypos_t key = record->event.key;
 
-    if (locking && keycode != B_KLOCK && record->event.pressed) {
-        b_locked[key.row][key.col] = !b_locked[key.row][key.col];
-        return false;
-    }
-    else if (!locking && b_locked[key.row][key.col]) {
-        return false;
+    if (record->event.type == KEY_EVENT) {
+        if (locking && keycode != B_KLOCK && record->event.pressed) {
+            b_locked[key.row][key.col] = !b_locked[key.row][key.col];
+            return false;
+        }
+        else if (!locking && b_locked[key.row][key.col]) {
+            return false;
+        }
     }
 
     switch (keycode) {

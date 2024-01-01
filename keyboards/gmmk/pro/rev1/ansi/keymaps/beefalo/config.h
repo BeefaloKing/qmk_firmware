@@ -2,7 +2,7 @@
 
 /* General Configuration. */
 #define USB_POLLING_INTERVAL_MS 1
-#define DEBOUNCE 5
+#define DEBOUNCE 7
 
 #define FORCE_NKRO // I hate forgetting this is turned off when my EEPROM resets.
 
