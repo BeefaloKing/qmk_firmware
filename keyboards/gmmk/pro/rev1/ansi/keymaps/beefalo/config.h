@@ -2,12 +2,12 @@
 
 /* General Configuration. */
 #define USB_POLLING_INTERVAL_MS 1
-#define DEBOUNCE 7
+#define DEBOUNCE 10
 
 #define FORCE_NKRO // I hate forgetting this is turned off when my EEPROM resets.
 
 /* RGB Configuration. */
-#define RGB_DISABLE_TIMEOT 720000 // 12 minutes.
+#define RGB_MATRIX_TIMEOUT 720000 // 12 minutes.
 
 // Standard effects (RGB_MATRIX_ENABLE)
 #undef ENABLE_RGB_MATRIX_ALPHAS_MODS
