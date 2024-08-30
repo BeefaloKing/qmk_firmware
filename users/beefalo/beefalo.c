@@ -21,6 +21,10 @@ void keyboard_post_init_keymap(void) {}
 static bool b_locked[MATRIX_ROWS][MATRIX_COLS];
 static const RGB IND_COLOR = {.r = 255, .g = 0, .b = 0}; // Locked key indicator color.
 
+#ifdef B_BOUNCE_DETECT
+static bool b_bounced[MATRIX_ROWS][MATRIX_COLS];
+#endif
+
 /// Returns integer index of RGB matrix led at `key`.
 int key_to_led(keypos_t key) {
     return g_led_config.matrix_co[key.row][key.col];
@@ -40,6 +44,38 @@ static void tap_key(uint16_t keycode) {
 }
 
 /* User space functions. */
+#ifdef B_BOUNCE_DETECT
+bool record_bounce_detect(uint16_t keycode, keyrecord_t *record) {
+    static bool b_bouncing = false;
+    static uint32_t b_bounce_time[MATRIX_ROWS][MATRIX_COLS];
+
+    keypos_t key = record->event.key;
+
+    switch (keycode) {
+    case B_BNCDT:
+        if (record->event.pressed) {
+            b_bouncing = !b_bouncing;
+            memset(b_bounced, 0, sizeof(b_bounced));
+            memset(b_bounce_time, 0, sizeof(b_bounce_time));
+        }
+        return true;
+    default:
+        if (record->event.type == KEY_EVENT && record->event.pressed) {
+            if (timer_elapsed32(b_bounce_time[key.row][key.col]) < B_BOUNCE_TIME) {
+                b_bounced[key.row][key.col] = true;
+            }
+            b_bounce_time[key.row][key.col] = timer_read32();
+            if (b_bouncing) {
+                return false;
+            }
+        }
+        break;
+    }
+
+    return true;
+}
+#endif // B_BOUNCE_DETECT
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static bool locking = false;
 
@@ -55,9 +91,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
+    #ifdef B_BOUNCE_DETECT
+    if (!record_bounce_detect(keycode, record)) {
+        return false;
+    }
+    #endif
+
     switch (keycode) {
     case B_KLOCK:
-        locking = (record->event.pressed);
+        locking = record->event.pressed;
         break;
     case B_BTN1:
         if (record->event.pressed) {
@@ -77,6 +119,11 @@ bool rgb_matrix_indicators_user(void) {
             if (b_locked[r][c]) {
                 set_key_rgb((keypos_t) {c, r}, IND_COLOR);
             }
+            #ifdef B_BOUNCE_DETECT
+            if (b_bounced[r][c]) {
+                set_key_rgb((keypos_t) {c, r}, IND_COLOR);
+            }
+            #endif
         }
     }
 
